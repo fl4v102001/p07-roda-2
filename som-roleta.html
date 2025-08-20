@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Som - Clique da Roleta</title>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #2c3e50;
+            font-family: sans-serif;
+        }
+
+        #btn {
+            padding: 20px 40px;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        #btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        #btn:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+    <button id="btn">Clique da roleta</button>
+
+<script>
+    // É uma boa prática criar o AudioContext uma única vez.
+    // Ele será inicializado no primeiro clique do usuário.
+    let audioCtx;
+
+    function playRouletteClick() {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        // --- Oscilador principal ---
+        const osc = audioCtx.createOscillator();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(800, audioCtx.currentTime); // mais grave para corpo do som
+
+        // --- Envelope de volume ---
+        const gainOsc = audioCtx.createGain();
+        gainOsc.gain.setValueAtTime(1, audioCtx.currentTime);
+        gainOsc.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.07); // decay mais natural
+
+        // --- Ruído para textura mecânica ---
+        const noise = audioCtx.createBufferSource();
+        const bufferSize = audioCtx.sampleRate * 0.05; // 50ms
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+        }
+        noise.buffer = buffer;
+
+        // --- Filtro para o ruído ---
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(1800, audioCtx.currentTime); // um pouco mais grave
+        filter.Q.value = 6; // ressonância
+
+        // --- Envelope de volume do ruído ---
+        const gainNoise = audioCtx.createGain();
+        gainNoise.gain.setValueAtTime(0.6, audioCtx.currentTime);
+        gainNoise.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.06);
+
+        // --- Conexões ---
+        osc.connect(gainOsc).connect(audioCtx.destination);
+        noise.connect(filter).connect(gainNoise).connect(audioCtx.destination);
+
+        // --- Start/Stop ---
+        osc.start(audioCtx.currentTime);
+        osc.stop(audioCtx.currentTime + 0.07);
+
+        noise.start(audioCtx.currentTime);
+        noise.stop(audioCtx.currentTime + 0.06);
+    }
+
+    document.getElementById('btn').addEventListener('click', playRouletteClick);
+</script>
+</body>
+</html>
