@@ -20,7 +20,9 @@
     "preact": "^10.22.0",
     "typescript": "^5.4.5",
     "vite": "^5.2.0",
-    "ws": "^8.17.0"
+    "ws": "^8.17.0",
+    "concurrently": "^8.2.2",
+    "tsx": "^4.9.3"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",

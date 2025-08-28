@@ -1,14 +1,13 @@
 import { state } from "./state";
-import type { RouletteItem } from "./types";
 import { renderTable, updateSpeed, handleAddItem, handleTableClick, handleItemUpdate } from "./ui";
 import { createWheel, spinWheel } from "./wheel";
 import { WebSocketClient } from "./WebSocketClient";
-
+ 
 // --- DOM Elements ---
 const configControls = document.getElementById('configControls');
 const configManager = document.getElementById('configManager');
 const raffleIdDisplay = document.getElementById('raffleIdDisplay');
-const roleDisplay = document.getElementById('roleDisplay'); // Added roleDisplay
+const roleDisplay = document.getElementById('roleDisplay');
 const exitButton = document.getElementById('exitButton');
 const syncButton = document.getElementById('syncButton');
 const spinButton = document.getElementById('spinButton');
@@ -18,7 +17,13 @@ const showLinesCheckbox = document.getElementById('showLinesCheckbox') as HTMLIn
 const showTextCheckbox = document.getElementById('showTextCheckbox') as HTMLInputElement | null;
 const speedSlider = document.getElementById('speedSlider') as HTMLInputElement | null;
 const raffleTitleInput = document.getElementById('raffleTitleInput') as HTMLInputElement | null;
-const managerTitle = document.querySelector('.manager-title'); // Added managerTitle
+const managerTitle = document.getElementById('.manager-title');
+
+// --- Variável do Cliente no Escopo do Módulo ---
+// A CORREÇÃO CRÍTICA ESTÁ AQUI:
+// Ao declarar o 'client' aqui, fora de qualquer função, garantimos que ele
+// não seja "perdido" após o carregamento da página.
+let client: WebSocketClient | null = null;
 
 // --- Main App Logic ---
 function renderApp(isSpectator = false) {
@@ -28,54 +33,55 @@ function renderApp(isSpectator = false) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Retrieve raffleId and role from sessionStorage
+    console.log("DEBUG: DOM content loaded. Starting main script.");
+
     const raffleId = sessionStorage.getItem('currentRaffleId');
     const role = sessionStorage.getItem('currentRaffleRole');
+    console.log("DEBUG: Retrieved from sessionStorage:", { raffleId, role });
 
     if (!raffleId || !role) {
-        window.location.href = '/index.html'; // Redirect to login if no ID/role in session
+        console.log("DEBUG: Validation FAILED. Redirecting to index.html");
+        window.location.href = '/index.html';
         return;
     }
 
-    // Clean up the URL (optional, but good for aesthetics)
+    console.log("DEBUG: Validation PASSED.");
     history.replaceState(null, '', '/raffle.html');
 
     if (raffleIdDisplay) raffleIdDisplay.textContent = `ID do Sorteio: ${raffleId}`;
-    if (roleDisplay) { // Update role display
+    if (roleDisplay) {
         roleDisplay.textContent = `Papel: ${role === 'configurator' ? 'Configurador' : 'Espectador'}`;
     }
     if (exitButton) exitButton.style.display = 'block';
 
-    const client = new WebSocketClient(raffleId, role as string);
+    console.log("DEBUG: Creating WebSocket client...");
+    client = new WebSocketClient(raffleId, role as string);
+    
+    console.log("DEBUG: Attempting to connect WebSocket...");
     client.connect();
 
     exitButton?.addEventListener('click', () => {
-        client.close();
+        client?.close(); // Agora usa o 'client' que persiste
         window.location.href = '/index.html';
     });
 
     if (role === 'configurator') {
         setupConfiguratorView(client);
-    }
-    else {
+    } else {
         setupSpectatorView(client);
     }
 
-    // Initial render for configurator, spectator will render on SYNC_CONFIG
     if (role === 'configurator') {
         renderApp(false);
     }
 });
 
 // --- Role-based Setup Functions ---
-
 function setupConfiguratorView(client: WebSocketClient) {
-    // Show all admin controls
     if (configControls) configControls.style.display = 'flex';
     if (configManager) configManager.style.display = 'block';
-    if (managerTitle) managerTitle.style.display = 'block'; // Ensure managerTitle is visible for configurator
+    if (managerTitle) managerTitle.style.display = 'block';
 
-    // Load state from session for persistence
     const savedItems = sessionStorage.getItem('rouletteItems');
     if (savedItems) {
         try {
@@ -83,26 +89,23 @@ function setupConfiguratorView(client: WebSocketClient) {
         } catch (e) { console.error("Failed to load items from session:", e); }
     }
 
-    // --- Event Listeners for Configurator ---
     syncButton?.addEventListener('click', () => {
-        client.send({ type: 'SYNC_CONFIG', payload: 
-            { items: state.items,
+        client.send({
+            type: 'SYNC_CONFIG', payload:
+            {
+                items: state.items,
                 spinDuration: state.spinDuration,
                 showSubdivisionLines: state.showSubdivisionLines,
                 showTextOnWheel: state.showTextOnWheel,
-                raffleTitle: state.raffleTitle // Add raffleTitle to payload
-            } });
+                raffleTitle: state.raffleTitle
+            }
+        });
     });
 
     spinButton?.addEventListener('click', () => {
         if (state.items.length === 0) return;
-        // 1. Get parameters for a deterministic spin
-        const spinParams = spinWheel(true); // Pass true to get params without running animation
-        
-        // 2. Send the deterministic parameters to the server for broadcasting
+        const spinParams = spinWheel(true);
         client.send({ type: 'SPIN_WHEEL', payload: spinParams });
-
-        // 3. Run the animation locally with the same parameters
         spinWheel(false, spinParams);
     });
 
@@ -136,11 +139,10 @@ function setupConfiguratorView(client: WebSocketClient) {
     });
 
     speedSlider?.addEventListener('input', () => {
-        if(speedSlider) updateSpeed(speedSlider.value);
+        if (speedSlider) updateSpeed(speedSlider.value);
     });
-    if(speedSlider) updateSpeed(speedSlider.value);
+    if (speedSlider) updateSpeed(speedSlider.value);
 
-    // Event listener for raffleTitleInput
     raffleTitleInput?.addEventListener('input', () => {
         if (raffleTitleInput) {
             state.raffleTitle = raffleTitleInput.value;
@@ -149,42 +151,50 @@ function setupConfiguratorView(client: WebSocketClient) {
 }
 
 function setupSpectatorView(client: WebSocketClient) {
-    // Hide the spin button for spectators
     if (spinButton) spinButton.style.display = 'none';
-    
-    // Hide all admin controls
     if (configControls) configControls.style.display = 'none';
-    if (configManager) configManager.style.display = 'none'; // Hide configManager
-    if (managerTitle) managerTitle.style.display = 'none'; // Hide managerTitle
-
-    // Disable raffleTitleInput for spectators
+    if (configManager) configManager.style.display = 'none';
+    if (managerTitle) managerTitle.style.display = 'none';
     if (raffleTitleInput) raffleTitleInput.disabled = true;
+
+    const resultDiv = document.getElementById('result');
+    let hasReceivedError = false; // Flag para controlar o estado de erro
+
+    client.on('ERROR', (payload) => {
+        hasReceivedError = true; // Marca que um erro foi recebido
+        if (resultDiv) {
+            resultDiv.innerHTML = `<strong>Erro: ${payload.message}. Redirecionando...</strong>`;
+        }
+        setTimeout(() => {
+            window.location.href = '/index.html';
+        }, 3000);
+    });
 
     client.on('SYNC_CONFIG', (payload) => {
         console.log('Syncing config:', payload);
         state.items = payload.items || [];
-        state.spinDuration = payload.spinDuration || 20; // Usa um padrão caso não venha
+        state.spinDuration = payload.spinDuration || 20;
         state.showSubdivisionLines = payload.showSubdivisionLines;
         state.showTextOnWheel = payload.showTextOnWheel;
-        state.raffleTitle = payload.raffleTitle || '🎯 Roda de Sorteio'; // Update raffleTitle
+        state.raffleTitle = payload.raffleTitle || '🎯 Roda de Sorteio';
         renderApp(true);
     });
 
     client.on('SPIN_WHEEL', (payload) => {
         console.log('Received spin command:', payload);
-        spinWheel(false, payload); // Pass false to run animation with received params
+        spinWheel(false, payload);
     });
 
     client.onClose(() => {
-        const resultDiv = document.getElementById('result');
-        if (resultDiv) {
-            resultDiv.innerHTML = '<strong>A sessão foi encerrada pelo configurador. Redirecionando...</strong>';
+        // Apenas executa a lógica de fechamento padrão se nenhum erro foi tratado
+        if (!hasReceivedError) {
+            if (resultDiv) {
+                resultDiv.innerHTML = '<strong>A sessão foi encerrada pelo configurador. Redirecionando...</strong>';
+            }
+            if (exitButton) exitButton.setAttribute('disabled', 'true');
+            setTimeout(() => {
+                window.location.href = '/index.html';
+            }, 3000);
         }
-        // Disable exit button to prevent closing a closed connection
-        if (exitButton) exitButton.setAttribute('disabled', 'true');
-        
-        setTimeout(() => {
-            window.location.href = '/index.html';
-        }, 3000); // Redirect after 3 seconds
     });
 }

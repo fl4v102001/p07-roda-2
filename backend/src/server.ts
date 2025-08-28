@@ -2,26 +2,25 @@ import express from 'express';
 import http from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 import cors from 'cors';
+import path from 'path';
 
 const app = express();
-app.use(cors({ origin: "http://127.0.0.1:5173" })); // Use o IP explícito
+app.use(cors());
 
 const server = http.createServer(app);
-const wss = new WebSocketServer({ noServer: true }); // Não anexe ao servidor ainda
+const wss = new WebSocketServer({ noServer: true });
 
 const PORT = process.env.PORT || 8080;
 
-// ... (todo o seu código de lógica de salas: Room, rooms, getRoom, createRoom, etc. permanece aqui)
-interface Room {
-  id: string
-  configurator: WebSocket | null
-  spectators: WebSocket[]
-  lastConfig: any
-}
-const rooms: { [key: string]: Room } = {}
-function getRoom(id: string): Room | undefined { return rooms[id] }
+const staticFilesPath = path.join(__dirname, '../../frontend/dist');
+app.use(express.static(staticFilesPath));
+
+// ... (toda a sua lógica de salas: Room, rooms, etc. permanece aqui)
+interface Room { id: string; configurator: WebSocket | null; spectators: WebSocket[]; lastConfig: any; }
+const rooms: { [key: string]: Room } = {};
+function getRoom(id: string): Room | undefined { return rooms[id]; }
 function createRoom(id: string): Room {
-  if (rooms[id]) { return rooms[id] }
+  if (rooms[id]) { return rooms[id]; }
   rooms[id] = { id, configurator: null, spectators: [], lastConfig: null, };
   console.log(`Room ${id} created.`);
   return rooms[id];
@@ -30,11 +29,10 @@ function removeRoom(id: string) { delete rooms[id]; console.log(`Room ${id} clos
 function roomExists(id: string): boolean { return rooms[id] && rooms[id].configurator !== null; }
 function broadcastToSpectators(room: Room, message: any) {
   room.spectators.forEach((ws) => {
-    try { ws.send(JSON.stringify(message)) } catch (error) { console.error("Failed to send message to spectator:", error) }
+    try { ws.send(JSON.stringify(message)); } catch (error) { console.error("Failed to send message to spectator:", error); }
   });
 }
 // ... (fim da lógica de salas)
-
 
 app.get("/api/raffle/exists/:id", (req, res) => {
     const { id } = req.params;
@@ -47,10 +45,12 @@ wss.on('connection', (ws, req) => {
     const role = parameters.get('role');
 
     if (!raffleId || !role) {
-        ws.close(); return;
+        ws.close();
+        return;
     }
+
     // ... (toda a sua lógica de wss.on('connection') permanece aqui)
-    console.log(`New connection for raffle ID: ${raffleId} with role: ${role}`)
+    console.log(`New connection for raffle ID: ${raffleId} with role: ${role}`);
     if (role === "configurator") {
         const existingRoom = getRoom(raffleId);
         if (existingRoom && existingRoom.configurator && existingRoom.configurator.readyState === WebSocket.OPEN) {
@@ -93,15 +93,11 @@ wss.on('connection', (ws, req) => {
     } else {
         ws.close();
     }
-    // ... (fim da lógica de wss.on('connection'))
 });
 
-// **CORREÇÃO PRINCIPAL DO BACKEND**
 server.on('upgrade', (request, socket, head) => {
-    // Usa a API de URL moderna e segura (WHATWG)
     const { pathname } = new URL(request.url || '/', `http://${request.headers.host}`);
-
-    if (pathname === '/ws') { // Apenas aceite upgrades no caminho /ws
+    if (pathname === '/ws') {
         wss.handleUpgrade(request, socket, head, (ws) => {
             wss.emit('connection', ws, request);
         });
@@ -110,6 +106,11 @@ server.on('upgrade', (request, socket, head) => {
     }
 });
 
-server.listen(PORT as number, '127.0.0.1', () => { // Escute no IP explícito
+app.get('*', (req, res) => {
+    res.sendFile(path.join(staticFilesPath, 'index.html'));
+});
+
+server.listen(PORT as number, '127.0.0.1', () => {
     console.log(`Server is listening on http://127.0.0.1:${PORT}`);
 });
+ 
