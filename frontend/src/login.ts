@@ -32,8 +32,14 @@ document.addEventListener('DOMContentLoaded', () => {
         errorMessage.textContent = ''; // Clear previous errors
         errorMessage.style.display = 'none';
 
-        const ws = new WebSocket(`ws://localhost:8080?id=${raffleId}&role=${role}`);
+        // ANTES:
+        // const ws = new WebSocket(`ws://localhost:8080?id=${raffleId}&role=${role}`);
 
+        // DEPOIS:
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.host; // ex: 127.0.0.1:5173
+        const wsUrl = `${protocol}//${host}/ws?id=${raffleId}&role=${role}`;
+        const ws = new WebSocket(wsUrl);
         ws.onopen = () => {
             console.log(`WebSocket connected for raffle ID: ${raffleId}. Waiting for role assignment...`);
             // DO NOT REDIRECT HERE. Wait for SET_ROLE message from backend.

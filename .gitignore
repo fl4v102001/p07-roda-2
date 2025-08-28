@@ -12,3 +12,4 @@ coverage
 out
 *.tsbuildinfo
 npm-debug.log*
+node_modules

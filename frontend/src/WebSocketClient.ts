@@ -11,8 +11,13 @@ export class WebSocketClient {
     constructor(private raffleId: string, private role: string) {}
 
     public connect() {
-        const url = `ws://localhost:8080?id=${this.raffleId}&role=${this.role}`;
-        this.ws = new WebSocket(url);
+        // ANTES:
+        // const url = `ws://localhost:8080?id=${this.raffleId}&role=${this.role}`;
+
+        // DEPOIS:
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.host;
+        const url = `${protocol}//${host}/ws?id=${this.raffleId}&role=${this.role}`;        this.ws = new WebSocket(url);
 
         this.ws.onopen = () => {
             console.log('WebSocket connection established.');
