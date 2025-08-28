@@ -2,7 +2,6 @@ import express from 'express';
 import http from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 import cors from 'cors';
-import url from 'url';
 
 const app = express();
 app.use(cors({ origin: "http://127.0.0.1:5173" })); // Use o IP explícito
@@ -43,7 +42,7 @@ app.get("/api/raffle/exists/:id", (req, res) => {
 });
 
 wss.on('connection', (ws, req) => {
-    const parameters = new url.URLSearchParams(req.url?.split('?')[1] || '');
+    const parameters = new URLSearchParams(req.url?.split('?')[1] || '');
     const raffleId = parameters.get('id');
     const role = parameters.get('role');
 
@@ -99,7 +98,8 @@ wss.on('connection', (ws, req) => {
 
 // **CORREÇÃO PRINCIPAL DO BACKEND**
 server.on('upgrade', (request, socket, head) => {
-    const pathname = request.url ? url.parse(request.url).pathname : undefined;
+    // Usa a API de URL moderna e segura (WHATWG)
+    const { pathname } = new URL(request.url || '/', `http://${request.headers.host}`);
 
     if (pathname === '/ws') { // Apenas aceite upgrades no caminho /ws
         wss.handleUpgrade(request, socket, head, (ws) => {
