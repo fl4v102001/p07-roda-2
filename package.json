@@ -5,7 +5,13 @@
 "scripts": {
   "dev:backend": "tsx watch backend/src/server.ts",
   "dev:frontend": "vite",
-  "dev": "concurrently \"npm:dev:backend\" \"npm:dev:frontend\""
+  "dev": "concurrently \"npm:dev:backend\" \"npm:dev:frontend\"",
+  
+  "build:frontend": "vite build",
+  "build:backend": "tsc -p backend/tsconfig.json",
+  "build": "npm run build:frontend && npm run build:backend",
+
+  "start": "node backend/dist/server.js"
 },
 
   "dependencies": {
