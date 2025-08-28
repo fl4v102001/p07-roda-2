@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roda de Sorteio</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style id="animation-style"></style>
+  <script type="module" crossorigin src="/assets/raffle-DZGWQx5k.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/style-RTyUgtkN.js">
+  <link rel="stylesheet" crossorigin href="/assets/style-DhNWl0mT.css">
+</head>
+<body>
+    <div class="session-info">
+        <!-- Moved connection status to separate line above raffle ID -->
+        <div class="connection-status">
+            <div class="status-dot status-connected" id="connectionStatusDot"></div>
+            <div class="status-tooltip" id="connectionTooltip">Connected and synced</div>
+        </div>
+        <div class="session-details">
+            <span id="raffleIdDisplay"></span>
+            <span id="roleDisplay"></span>
+            <button id="exitButton" class="spin-button" style="padding: 8px 15px; font-size: 14px; display: none;">
+                <span class="material-icons">logout</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="main-wrapper">
+        <div id="raffle-column">
+            <div class="container">
+                <input type="text" id="raffleTitleInput" class="title" value="🎯 Roda de Sorteio" />
+
+                <div class="result" id="result">
+                    Aguardando configuração do sorteio...
+                </div>        
+
+                <div class="wheel-container">
+                    <div class="pointer"></div>
+                    <svg id="wheelSVG" viewBox="0 0 550 550" style="border-radius:50%; box-shadow: 0 10px 30px rgba(0,0,0,0.3); overflow:visible;">
+                        <!-- Fatias serão desenhadas via JS -->
+                    </svg>
+                </div>
+                <button class="spin-button" id="spinButton">GIRAR RODA</button>
+            </div>
+        </div>
+        <div id="settings-column">
+            <div class="controls" id="configControls">
+                <button class="spin-button" id="syncButton" style="background: #54a0ff;">SINCRONIZAR</button>
+                <div class="speed-control">
+                    <label class="speed-label">Velocidade:</label>
+                    <input 
+                        type="range" 
+                        id="speedSlider" 
+                        class="speed-slider"
+                        min="5" 
+                        max="60" 
+                        value="20" 
+                        step="5"
+                    >
+                    <span class="speed-value" id="speedValue">20s</span>
+                </div>
+                <div class="checkbox-group">
+                    <div class="checkbox-control">
+                        <input type="checkbox" id="showLinesCheckbox" checked>
+                        <label for="showLinesCheckbox" class="checkbox-label">Mostrar linhas</label>
+                    </div>
+                    <div class="checkbox-control">
+                        <input type="checkbox" id="showTextCheckbox" checked>
+                        <label for="showTextCheckbox" class="checkbox-label">Mostrar texto</label>
+                    </div>
+                </div>
+            </div>
+            <div class="item-manager" id="configManager">
+                <h2 class="manager-title">Gerenciar Sorteio</h2>
+                <form id="addItemForm" class="item-form">
+                    <input type="text" id="itemName" placeholder="Nome" required>
+                    <input type="number" id="itemQuantity" placeholder="Quantidade" min="1" value="1" required>
+                    <button type="submit">Adicionar</button>
+                </form>
+                <table class="items-table">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Quantidade</th>
+                            <th>Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="itemsTableBody">
+                        <!-- Itens serão adicionados aqui via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
