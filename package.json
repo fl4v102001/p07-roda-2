@@ -16,8 +16,11 @@
 
   "dependencies": {
     "cors": "^2.8.5",
-    "express": "^5.1.0",
-    "ws": "^8.18.3"
+    "express": "^4.19.2",
+    "preact": "^10.22.0",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.0",
+    "ws": "^8.17.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
